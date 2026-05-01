@@ -75,7 +75,7 @@ public class CategoriesConfigManager extends DataFolderConfigManager {
                         );
                         String pathValue = "discoveries."+key+".discovered_on.value";
                         discoveredOn.setMobName(config.getString(pathValue+".mob_name"));
-                        discoveredOn.setMobType(config.getString(pathValue+".mob_type"));
+                        discoveredOn.setMobTypes(readMobTypes(config, pathValue+".mob_type"));
                         discoveredOn.setRegionName(config.getString(pathValue+".region_name"));
                     }
 
@@ -143,6 +143,31 @@ public class CategoriesConfigManager extends DataFolderConfigManager {
     @Override
     public void saveConfigs() {
 
+    }
+
+    /**
+     * Reads mob_type as either a YAML list ({@code [foo, bar]}), a single
+     * string, or a legacy {@code ;}-separated single string. Returns null when
+     * the key isn't present so the caller can leave the filter empty.
+     */
+    private List<String> readMobTypes(FileConfiguration config, String path){
+        if(!config.contains(path)) return null;
+        if(config.isList(path)){
+            return config.getStringList(path);
+        }
+        String raw = config.getString(path);
+        if(raw == null || raw.isEmpty()) return null;
+        if(raw.contains(";")){
+            ArrayList<String> out = new ArrayList<>();
+            for(String t : raw.split(";")){
+                String trimmed = t.trim();
+                if(!trimmed.isEmpty()) out.add(trimmed);
+            }
+            return out;
+        }
+        ArrayList<String> single = new ArrayList<>();
+        single.add(raw);
+        return single;
     }
 
     @Override

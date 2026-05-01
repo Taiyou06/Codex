@@ -62,8 +62,7 @@ public class DiscoveryManager {
         for(Discovery discovery : discoveries){
             DiscoveredOn discoveredOn = discovery.getDiscoveredOn();
             String discoveryMobName = discoveredOn.getMobName();
-            String discoveryMobType = discoveredOn.getMobType();
-            if(discoveryMobType != null && !discoveryMobType.equals(mobType)){
+            if(!discoveredOn.matchesMobType(mobType)){
                 continue;
             }
             if(discoveryMobName != null && !discoveryMobName.equals(mobName)){
@@ -89,12 +88,8 @@ public class DiscoveryManager {
     private void onPluginMobKill(Player player, String mobType, ArrayList<Discovery> discoveries){
         for(Discovery discovery : discoveries){
             DiscoveredOn discoveredOn = discovery.getDiscoveredOn();
-            String discoveryMobType = discoveredOn.getMobType();
-            if(discoveryMobType != null){
-                String[] sep = discoveryMobType.split(";");
-                if(Arrays.stream(sep).noneMatch(mobType::equals)){
-                    continue;
-                }
+            if(!discoveredOn.matchesMobType(mobType)){
+                continue;
             }
 
             onDiscover(player,discovery.getCategoryName(),discovery.getId());

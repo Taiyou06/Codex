@@ -1,9 +1,12 @@
 package cx.ajneb97.model.structure;
 
+import java.util.Collections;
+import java.util.List;
+
 public class DiscoveredOn {
 
     private DiscoveredOnType type;
-    private String mobType;
+    private List<String> mobTypes;
     private String mobName;
     private String regionName;
 
@@ -19,12 +22,17 @@ public class DiscoveredOn {
         this.type = type;
     }
 
-    public String getMobType() {
-        return mobType;
+    public List<String> getMobTypes() {
+        return mobTypes == null ? Collections.emptyList() : mobTypes;
     }
 
-    public void setMobType(String mobType) {
-        this.mobType = mobType;
+    public void setMobTypes(List<String> mobTypes) {
+        this.mobTypes = mobTypes;
+    }
+
+    /** True when no mob_type filter is configured, or when the given type is in the list. */
+    public boolean matchesMobType(String mobType) {
+        return mobTypes == null || mobTypes.isEmpty() || mobTypes.contains(mobType);
     }
 
     public String getMobName() {
