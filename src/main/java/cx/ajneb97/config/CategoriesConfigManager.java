@@ -75,8 +75,8 @@ public class CategoriesConfigManager extends DataFolderConfigManager {
                         );
                         String pathValue = "discoveries."+key+".discovered_on.value";
                         discoveredOn.setMobName(config.getString(pathValue+".mob_name"));
-                        discoveredOn.setMobTypes(readMobTypes(config, pathValue+".mob_type"));
-                        discoveredOn.setRegionName(config.getString(pathValue+".region_name"));
+                        discoveredOn.setMobTypes(readStringList(config, pathValue+".mob_type"));
+                        discoveredOn.setRegionNames(readStringList(config, pathValue+".region_name"));
                     }
 
                     CommonItem customDiscoveryItemUnlocked = null;
@@ -146,11 +146,11 @@ public class CategoriesConfigManager extends DataFolderConfigManager {
     }
 
     /**
-     * Reads mob_type as either a YAML list ({@code [foo, bar]}), a single
+     * Reads a config value as either a YAML list ({@code [foo, bar]}), a single
      * string, or a legacy {@code ;}-separated single string. Returns null when
      * the key isn't present so the caller can leave the filter empty.
      */
-    private List<String> readMobTypes(FileConfiguration config, String path){
+    private List<String> readStringList(FileConfiguration config, String path){
         if(!config.contains(path)) return null;
         if(config.isList(path)){
             return config.getStringList(path);

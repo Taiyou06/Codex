@@ -102,8 +102,7 @@ public class DiscoveryManager {
         ArrayList<Discovery> discoveries = getPossibleDiscoveries(DiscoveredOn.DiscoveredOnType.WORLDGUARD_REGION);
         for(Discovery discovery : discoveries){
             DiscoveredOn discoveredOn = discovery.getDiscoveredOn();
-            String discoveryRegionName = discoveredOn.getRegionName();
-            if(discoveryRegionName != null && !discoveryRegionName.equals(regionName)){
+            if(!discoveredOn.matchesRegionName(regionName)){
                 continue;
             }
 
@@ -117,8 +116,7 @@ public class DiscoveryManager {
         ArrayList<Discovery> discoveries = getPossibleDiscoveries(DiscoveredOn.DiscoveredOnType.RESIDENCE_REGION);
         for(Discovery discovery : discoveries){
             DiscoveredOn discoveredOn = discovery.getDiscoveredOn();
-            String discoveryRegionName = discoveredOn.getRegionName();
-            if(discoveryRegionName != null && !discoveryRegionName.equals(regionName)){
+            if(!discoveredOn.matchesRegionName(regionName)){
                 continue;
             }
 

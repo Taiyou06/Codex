@@ -8,7 +8,7 @@ public class DiscoveredOn {
     private DiscoveredOnType type;
     private List<String> mobTypes;
     private String mobName;
-    private String regionName;
+    private List<String> regionNames;
 
     public DiscoveredOn(DiscoveredOnType type) {
         this.type = type;
@@ -43,12 +43,17 @@ public class DiscoveredOn {
         this.mobName = mobName;
     }
 
-    public String getRegionName() {
-        return regionName;
+    public List<String> getRegionNames() {
+        return regionNames == null ? Collections.emptyList() : regionNames;
     }
 
-    public void setRegionName(String regionName) {
-        this.regionName = regionName;
+    public void setRegionNames(List<String> regionNames) {
+        this.regionNames = regionNames;
+    }
+
+    /** True when no region_name filter is configured, or when the given region is in the list. */
+    public boolean matchesRegionName(String regionName) {
+        return regionNames == null || regionNames.isEmpty() || regionNames.contains(regionName);
     }
 
     public enum DiscoveredOnType{
