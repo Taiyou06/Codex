@@ -3,6 +3,7 @@ package cx.ajneb97.model.structure;
 import cx.ajneb97.model.item.CommonItem;
 
 import java.util.List;
+import java.util.Map;
 
 public class Discovery {
     private String id;
@@ -13,6 +14,7 @@ public class Discovery {
     private CommonItem customLevelUnlockedItem;
     private CommonItem customLevelBlockedItem;
     private List<String> customRewards;
+    private Map<String, String> rewardVariables;
     private List<String> clickActions;
     private int clickActionsCooldown;
 
@@ -83,6 +85,14 @@ public class Discovery {
 
     public void setCustomRewards(List<String> customRewards) {
         this.customRewards = customRewards;
+    }
+
+    public Map<String, String> getRewardVariables() {
+        return rewardVariables;
+    }
+
+    public void setRewardVariables(Map<String, String> rewardVariables) {
+        this.rewardVariables = rewardVariables;
     }
 
     public List<String> getClickActions() {

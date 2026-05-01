@@ -12,7 +12,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class CategoriesConfigManager extends DataFolderConfigManager {
@@ -39,6 +41,26 @@ public class CategoriesConfigManager extends DataFolderConfigManager {
 
             List<String> rewardsPerDiscovery = config.getStringList("config.rewards.per_discovery");
             List<String> rewardsAllDiscoveries = config.getStringList("config.rewards.all_discoveries");
+
+            Category.RewardsMode rewardsMode = Category.RewardsMode.OVERRIDE;
+            if(config.contains("config.rewards.mode")){
+                try {
+                    rewardsMode = Category.RewardsMode.valueOf(config.getString("config.rewards.mode").toUpperCase());
+                } catch (IllegalArgumentException ignored) {}
+            }
+
+            List<String> rewardsTemplate = null;
+            if(config.contains("config.rewards.template")){
+                rewardsTemplate = config.getStringList("config.rewards.template");
+            }
+
+            Map<String, String> templateDefaults = null;
+            if(config.contains("config.rewards.template_defaults")){
+                templateDefaults = new HashMap<>();
+                for(String tdKey : config.getConfigurationSection("config.rewards.template_defaults").getKeys(false)){
+                    templateDefaults.put("%" + tdKey + "%", config.getString("config.rewards.template_defaults." + tdKey));
+                }
+            }
 
             ArrayList<Discovery> discoveries = new ArrayList<>();
             if(config.contains("discoveries")){
@@ -71,6 +93,14 @@ public class CategoriesConfigManager extends DataFolderConfigManager {
                         rewards = config.getStringList("discoveries."+key+".rewards");
                     }
 
+                    Map<String, String> rewardVariables = null;
+                    if(config.contains("discoveries."+key+".reward_variables")){
+                        rewardVariables = new HashMap<>();
+                        for(String rvKey : config.getConfigurationSection("discoveries."+key+".reward_variables").getKeys(false)){
+                            rewardVariables.put("%" + rvKey + "%", config.getString("discoveries."+key+".reward_variables." + rvKey));
+                        }
+                    }
+
                     List<String> clickActions = null;
                     if(config.contains("discoveries."+key+".click_actions")){
                         clickActions = config.getStringList("discoveries."+key+".click_actions");
@@ -83,6 +113,7 @@ public class CategoriesConfigManager extends DataFolderConfigManager {
                     discovery.setDescription(discoveryDescription);
                     discovery.setDiscoveredOn(discoveredOn);
                     discovery.setCustomRewards(rewards);
+                    discovery.setRewardVariables(rewardVariables);
                     discovery.setClickActions(clickActions);
                     discovery.setClickActionsCooldown(clickActionsCooldown);
                     discovery.setCustomLevelBlockedItem(customDiscoveryItemBlocked);
@@ -98,6 +129,9 @@ public class CategoriesConfigManager extends DataFolderConfigManager {
             category.setDefaultLevelBlockedItem(itemDiscoveryBlocked);
             category.setDefaultRewardsAllDiscoveries(rewardsAllDiscoveries);
             category.setDefaultRewardsPerDiscovery(rewardsPerDiscovery);
+            category.setRewardsMode(rewardsMode);
+            category.setRewardsTemplate(rewardsTemplate);
+            category.setTemplateDefaults(templateDefaults);
             category.setDiscoveries(discoveries);
 
             categories.add(category);

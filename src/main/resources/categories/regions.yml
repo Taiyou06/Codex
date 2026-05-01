@@ -21,6 +21,27 @@ config:
       lore:
         - "&7You haven't unlocked this discovery yet."
   rewards:
+    mode: OVERRIDE
+    # Template: define reward actions once with placeholders (e.g. %xp%).
+    # Discoveries using reward_variables will use this template.
+    template:
+      - "centered_message: #6bcbfe&m00                                                 00"
+      - "centered_message: "
+      - "centered_message: #eeeeee&lCODEX UPDATED"
+      - "centered_message: &7World Regions: %name%"
+      - "centered_message: "
+      - "centered_message: &7Check it now by using #eeeeee/codex"
+      - "centered_message: "
+      - "centered_message: &7Rewards: &a+%xp%XP"
+      - "centered_message: "
+      - "centered_message: #6bcbfe&m00                                                 00"
+      - "title: 20;60;20;#eeeeee&lCODEX UPDATED;&7Region: %name%"
+      - "playsound: BLOCK_GILDED_BLACKSTONE_STEP;10;0.1"
+      - "console_command: xp give %player% %xp%"
+    # Default values for template placeholders (used when a discovery doesn't override them).
+    template_defaults:
+      xp: "50"
+    # Fallback rewards for discoveries that have neither reward_variables nor custom rewards.
     per_discovery:
       - "centered_message: #6bcbfe&m00                                                 00"
       - "centered_message: "
@@ -48,6 +69,9 @@ discoveries:
       type: WORLDGUARD_REGION
       value:
         region_name: shadow_swamp
+    # Uses the template with xp=100 instead of the default 50
+    reward_variables:
+      xp: "100"
     inventory_items:
       discovery_unlocked:
         id: PAPER
@@ -69,6 +93,9 @@ discoveries:
       type: WORLDGUARD_REGION
       value:
         region_name: kryngel
+    # Uses the template with default xp=50
+    reward_variables:
+      xp: "50"
     inventory_items:
       discovery_unlocked:
         id: PAPER

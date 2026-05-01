@@ -11,6 +11,7 @@ import cx.ajneb97.utils.ActionUtils;
 import org.bukkit.entity.Player;
 
 import java.util.*;
+import java.util.Map;
 
 public class DiscoveryManager {
     private Codex plugin;
@@ -132,6 +133,41 @@ public class DiscoveryManager {
         }
     }
 
+    /**
+     * Resolves which reward actions to use for a discovery.
+     * Priority: customRewards > rewardsTemplate (if reward_variables set) > defaultRewardsPerDiscovery
+     * In ADDITIVE mode, template/custom rewards are combined with category defaults.
+     */
+    private List<String> resolveRewards(Category category, Discovery discovery){
+        List<String> customRewards = discovery.getCustomRewards();
+        List<String> template = category.getRewardsTemplate();
+        Map<String, String> rewardVars = discovery.getRewardVariables();
+        List<String> categoryRewards = category.getDefaultRewardsPerDiscovery();
+
+        // 1. Explicit custom rewards on the discovery
+        if(customRewards != null){
+            if(category.getRewardsMode() == Category.RewardsMode.ADDITIVE && categoryRewards != null){
+                List<String> combined = new ArrayList<>(categoryRewards);
+                combined.addAll(customRewards);
+                return combined;
+            }
+            return customRewards;
+        }
+
+        // 2. Template with per-discovery variables
+        if(template != null && rewardVars != null){
+            if(category.getRewardsMode() == Category.RewardsMode.ADDITIVE && categoryRewards != null){
+                List<String> combined = new ArrayList<>(categoryRewards);
+                combined.addAll(template);
+                return combined;
+            }
+            return template;
+        }
+
+        // 3. Fall back to category defaults
+        return categoryRewards;
+    }
+
     public boolean onDiscover(Player player,String categoryName,String discoveryName){
         Category category = plugin.getCategoryManager().getCategory(categoryName);
         Discovery discovery = category.getDiscovery(discoveryName);
@@ -147,12 +183,26 @@ public class DiscoveryManager {
         variables.add(new CommonVariable("%name%",discovery.getName()));
         boolean completed = playerDataManager.hasAllDiscoveries(player, categoryName, category.getDiscoveries().size()) &&
                 !playerDataManager.hasCompletedCategory(player, category.getName());
-        List<String> rewards = category.getDefaultRewardsPerDiscovery();
-        if(discovery.getCustomRewards() != null){
-            rewards = discovery.getCustomRewards();
-        }
+
+        List<String> rewards = resolveRewards(category, discovery);
 
         if(rewards != null){
+            // If using template, merge template_defaults + reward_variables into the variables list
+            Map<String, String> templateDefaults = category.getTemplateDefaults();
+            Map<String, String> rewardVars = discovery.getRewardVariables();
+            if(templateDefaults != null){
+                for(Map.Entry<String, String> entry : templateDefaults.entrySet()){
+                    variables.add(new CommonVariable(entry.getKey(), entry.getValue()));
+                }
+            }
+            if(rewardVars != null){
+                // Per-discovery variables override template defaults
+                for(Map.Entry<String, String> entry : rewardVars.entrySet()){
+                    variables.removeIf(v -> v.getVariable().equals(entry.getKey()));
+                    variables.add(new CommonVariable(entry.getKey(), entry.getValue()));
+                }
+            }
+
             for(String action : rewards){
                 ActionUtils.executeAction(player,action,plugin,variables);
             }
@@ -160,9 +210,9 @@ public class DiscoveryManager {
 
         if(completed){
             playerDataManager.completeCategory(player,categoryName);
-            rewards = category.getDefaultRewardsAllDiscoveries();
-            if(rewards != null){
-                for(String action : rewards){
+            List<String> completionRewards = category.getDefaultRewardsAllDiscoveries();
+            if(completionRewards != null){
+                for(String action : completionRewards){
                     ActionUtils.executeAction(player,action,plugin,variables);
                 }
             }

@@ -64,6 +64,7 @@ public class VerifyManager {
         //Actions
         verifyActions(category.getDefaultRewardsPerDiscovery(),"category rewards per_discovery",category.getName()+".yml");
         verifyActions(category.getDefaultRewardsAllDiscoveries(),"category rewards all_discoveries",category.getName()+".yml");
+        verifyActions(category.getRewardsTemplate(),"category rewards template",category.getName()+".yml");
         for(Discovery d : category.getDiscoveries()){
             verifyActions(d.getCustomRewards(),d.getId()+" rewards",category.getName()+".yml");
             verifyActions(d.getClickActions(),d.getId()+" click_actions",category.getName()+".yml");

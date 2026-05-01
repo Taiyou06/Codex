@@ -4,6 +4,7 @@ import cx.ajneb97.model.item.CommonItem;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Category {
     private String name;
@@ -13,6 +14,14 @@ public class Category {
     private CommonItem categoryItem;
     private List<String> defaultRewardsPerDiscovery;
     private List<String> defaultRewardsAllDiscoveries;
+    private RewardsMode rewardsMode;
+    private List<String> rewardsTemplate;
+    private Map<String, String> templateDefaults;
+
+    public enum RewardsMode {
+        OVERRIDE,
+        ADDITIVE
+    }
 
     public Category(String name) {
         this.name = name;
@@ -72,6 +81,30 @@ public class Category {
 
     public void setDefaultRewardsAllDiscoveries(List<String> defaultRewardsAllDiscoveries) {
         this.defaultRewardsAllDiscoveries = defaultRewardsAllDiscoveries;
+    }
+
+    public RewardsMode getRewardsMode() {
+        return rewardsMode;
+    }
+
+    public void setRewardsMode(RewardsMode rewardsMode) {
+        this.rewardsMode = rewardsMode;
+    }
+
+    public List<String> getRewardsTemplate() {
+        return rewardsTemplate;
+    }
+
+    public void setRewardsTemplate(List<String> rewardsTemplate) {
+        this.rewardsTemplate = rewardsTemplate;
+    }
+
+    public Map<String, String> getTemplateDefaults() {
+        return templateDefaults;
+    }
+
+    public void setTemplateDefaults(Map<String, String> templateDefaults) {
+        this.templateDefaults = templateDefaults;
     }
 
     public Discovery getDiscovery(String id){
