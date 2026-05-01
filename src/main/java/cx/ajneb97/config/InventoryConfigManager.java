@@ -60,7 +60,7 @@ public class InventoryConfigManager {
 
                 List<CommonInventoryItem> items = new ArrayList<>();
                 for(String slotString : config.getConfigurationSection("inventories."+key).getKeys(false)) {
-                    if(!slotString.equals("slots") && !slotString.equals("title")) {
+                    if(!slotString.equals("slots") && !slotString.equals("title") && !slotString.equals("discovery_slots")) {
                         String path = "inventories."+key+"."+slotString;
                         CommonItem item = null;
                         if(config.contains(path+".item")){
@@ -82,10 +82,43 @@ public class InventoryConfigManager {
                 }
 
                 CommonInventory inv = new CommonInventory(key,slots,title,items);
+
+                // Auto-pagination: list of slots that the plugin auto-fills with
+                // discoveries from the matching Category, splitting across pages
+                // of size = list length. Same syntax as item slot keys
+                // (e.g. "10-16,19-25" or "10;11;12").
+                if(config.contains("inventories."+key+".discovery_slots")){
+                    String discoverySlotsString = config.getString("inventories."+key+".discovery_slots");
+                    inv.setDiscoverySlots(parseSlotList(discoverySlotsString));
+                }
+
                 inventories.add(inv);
             }
         }
         inventoryManager.setInventories(inventories);
+    }
+
+    private List<Integer> parseSlotList(String spec){
+        List<Integer> out = new ArrayList<>();
+        if(spec == null || spec.isEmpty()) return out;
+        for(String token : spec.split("[,;]")){
+            String t = token.trim();
+            if(t.isEmpty()) continue;
+            try {
+                if(t.contains("-")){
+                    String[] range = t.split("-");
+                    int from = Integer.parseInt(range[0].trim());
+                    int to = Integer.parseInt(range[1].trim());
+                    if(from > to){ int tmp = from; from = to; to = tmp; }
+                    for(int i=from;i<=to;i++) out.add(i);
+                } else {
+                    out.add(Integer.parseInt(t));
+                }
+            } catch(NumberFormatException e){
+                plugin.getLogger().warning("Invalid discovery_slots entry: "+t);
+            }
+        }
+        return out;
     }
 
     public boolean reloadConfig(){

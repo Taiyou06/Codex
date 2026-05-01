@@ -52,6 +52,17 @@ public class InventoryManager {
                 return inventory;
             }
         }
+        // Paginated names like "category_regions;2" share the base inventory
+        // template — strip the suffix and try again.
+        int sep = name.indexOf(';');
+        if(sep > 0){
+            String base = name.substring(0, sep);
+            for(CommonInventory inventory : inventories){
+                if(inventory.getName().equals(base)){
+                    return inventory;
+                }
+            }
+        }
         return null;
     }
 
@@ -69,10 +80,52 @@ public class InventoryManager {
     }
 
     public void openInventory(InventoryPlayer inventoryPlayer){
-        CommonInventory inventory = getInventory(inventoryPlayer.getInventoryName());
+        String fullName = inventoryPlayer.getInventoryName();
+        CommonInventory inventory = getInventory(fullName);
+        if(inventory == null) return;
         MainConfigManager mainConfigManager = plugin.getConfigsManager().getMainConfigManager();
 
-        String title = inventory.getTitle();
+        // ----- Pagination setup -----
+        // Pagination kicks in when the inventory declares discovery_slots AND
+        // its base name resolves to a Category. The page is encoded as a
+        // semicolon suffix (category_regions;2 = page 2). Page 1 has no suffix.
+        String baseName = fullName;
+        int requestedPage = 1;
+        int sep = fullName.indexOf(';');
+        if(sep > 0){
+            baseName = fullName.substring(0, sep);
+            try { requestedPage = Math.max(1, Integer.parseInt(fullName.substring(sep+1))); }
+            catch(NumberFormatException ignored){ requestedPage = 1; }
+        }
+
+        List<Integer> discoverySlots = inventory.getDiscoverySlots();
+        boolean paginated = discoverySlots != null && !discoverySlots.isEmpty();
+        Category paginatedCategory = null;
+        int totalPages = 1;
+        int currentPage = 1;
+        List<Discovery> pageDiscoveries = new ArrayList<>();
+        if(paginated && baseName.startsWith("category_")){
+            paginatedCategory = plugin.getCategoryManager().getCategory(baseName.substring("category_".length()));
+            if(paginatedCategory != null){
+                int per = discoverySlots.size();
+                int total = paginatedCategory.getDiscoveries().size();
+                totalPages = Math.max(1, (int)Math.ceil(total / (double)per));
+                currentPage = Math.min(requestedPage, totalPages);
+                int from = (currentPage - 1) * per;
+                int to = Math.min(from + per, total);
+                if(from < to){
+                    pageDiscoveries = new ArrayList<>(paginatedCategory.getDiscoveries().subList(from, to));
+                }
+                // Reflect the clamped page back so subsequent clicks track correctly.
+                String clampedName = currentPage == 1 ? baseName : baseName + ";" + currentPage;
+                inventoryPlayer.setInventoryName(clampedName);
+            } else {
+                paginated = false;
+            }
+        }
+
+        // Title supports %page% / %total_pages% placeholders.
+        String title = applyPageVars(inventory.getTitle(), currentPage, totalPages);
         Inventory inv;
         if(mainConfigManager.isUseMiniMessage()){
             inv = MiniMessageUtils.createInventory(inventory.getSlots(),title);
@@ -83,10 +136,14 @@ public class InventoryManager {
         List<CommonInventoryItem> items = inventory.getItems();
         CommonItemManager commonItemManager = plugin.getCommonItemManager();
         Player player = inventoryPlayer.getPlayer();
+        java.util.Set<Integer> reservedSlots = paginated ? new java.util.HashSet<>(discoverySlots) : java.util.Collections.emptySet();
 
         //Add items for all inventories
         for(CommonInventoryItem itemInventory : items){
             for(int slot : itemInventory.getSlots()){
+                // Auto-pagination owns these slots — skip any explicit declarations.
+                if(reservedSlots.contains(slot)) continue;
+
                 String type = itemInventory.getType();
                 if(type != null){
                     ItemStack item = null;
@@ -94,6 +151,15 @@ public class InventoryManager {
                         item = setDiscovery(type.replace("discovery: ",""),inventoryPlayer);
                     }else if(type.startsWith("category: ")){
                         item = setCategory(type.replace("category: ",""),player);
+                    }else if(type.equals("next_page")){
+                        if(paginated && currentPage < totalPages){
+                            item = buildPageNavItem(itemInventory, player, baseName, currentPage + 1, currentPage, totalPages);
+                        }
+                    }else if(type.equals("previous_page")){
+                        if(paginated && currentPage > 1){
+                            int target = currentPage - 1;
+                            item = buildPageNavItem(itemInventory, player, baseName, target, currentPage, totalPages);
+                        }
                     }
                     if(item != null){
                         item = setItemActions(itemInventory,item);
@@ -103,6 +169,7 @@ public class InventoryManager {
                 }
 
                 ItemStack item = commonItemManager.createItemFromCommonItem(itemInventory.getItem(),player);
+                item = applyPageVars(item, currentPage, totalPages);
 
                 String openInventory = itemInventory.getOpenInventory();
                 if(openInventory != null) {
@@ -114,8 +181,64 @@ public class InventoryManager {
             }
         }
 
+        // Auto-fill paginated discovery slots from the category's discovery list.
+        if(paginated && paginatedCategory != null){
+            for(int i=0; i<discoverySlots.size() && i<pageDiscoveries.size(); i++){
+                int slot = discoverySlots.get(i);
+                ItemStack item = setDiscovery(pageDiscoveries.get(i).getId(), inventoryPlayer);
+                if(item != null){
+                    inv.setItem(slot, item);
+                }
+            }
+        }
+
         inventoryPlayer.getPlayer().openInventory(inv);
         players.add(inventoryPlayer);
+    }
+
+    private ItemStack buildPageNavItem(CommonInventoryItem itemInventory, Player player,
+                                        String baseName, int targetPage, int currentPage, int totalPages){
+        if(itemInventory.getItem() == null) return null;
+        CommonItem template = itemInventory.getItem().clone();
+        ArrayList<CommonVariable> vars = new ArrayList<>();
+        vars.add(new CommonVariable("%page%", String.valueOf(currentPage)));
+        vars.add(new CommonVariable("%total_pages%", String.valueOf(totalPages)));
+        vars.add(new CommonVariable("%target_page%", String.valueOf(targetPage)));
+        plugin.getCommonItemManager().replaceVariables(template, vars, player);
+        ItemStack item = plugin.getCommonItemManager().createItemFromCommonItem(template, player);
+        String target = targetPage <= 1 ? baseName : baseName + ";" + targetPage;
+        item = ItemUtils.setTagStringItem(plugin, item, "codex_open_inventory", target);
+        return item;
+    }
+
+    private String applyPageVars(String s, int currentPage, int totalPages){
+        if(s == null) return null;
+        return s.replace("%page%", String.valueOf(currentPage))
+                .replace("%total_pages%", String.valueOf(totalPages));
+    }
+
+    private ItemStack applyPageVars(ItemStack item, int currentPage, int totalPages){
+        if(item == null || !item.hasItemMeta()) return item;
+        ItemMeta meta = item.getItemMeta();
+        boolean changed = false;
+        if(meta.hasDisplayName()){
+            String dn = meta.getDisplayName();
+            String nd = applyPageVars(dn, currentPage, totalPages);
+            if(!nd.equals(dn)){ meta.setDisplayName(nd); changed = true; }
+        }
+        if(meta.hasLore()){
+            List<String> lore = meta.getLore();
+            List<String> nl = new ArrayList<>(lore.size());
+            boolean loreChanged = false;
+            for(String line : lore){
+                String n = applyPageVars(line, currentPage, totalPages);
+                if(!n.equals(line)) loreChanged = true;
+                nl.add(n);
+            }
+            if(loreChanged){ meta.setLore(nl); changed = true; }
+        }
+        if(changed) item.setItemMeta(meta);
+        return item;
     }
 
     private ItemStack setItemActions(CommonInventoryItem commonItem, ItemStack item) {

@@ -9,12 +9,21 @@ public class CommonInventory {
     private int slots;
     private String title;
     private List<CommonInventoryItem> items;
+    private List<Integer> discoverySlots = new ArrayList<>();
 
     public CommonInventory(String name, int slots, String title, List<CommonInventoryItem> items) {
         this.name = name;
         this.slots = slots;
         this.title = title;
         this.items = items;
+    }
+
+    public List<Integer> getDiscoverySlots() {
+        return discoverySlots;
+    }
+
+    public void setDiscoverySlots(List<Integer> discoverySlots) {
+        this.discoverySlots = discoverySlots;
     }
 
     public String getName() {
